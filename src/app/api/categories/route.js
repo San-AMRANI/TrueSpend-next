@@ -1,21 +1,23 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { verifyApiAuth, verifyCookieToken } from '@/lib/auth';
-import { getCategories, addCategory, deleteCategory } from '@/lib/database';
-
-function auth(request) {
-  const cookie = request.headers.get('cookie') || '';
-  return verifyCookieToken(cookie) || verifyApiAuth(request);
-}
+import { getCategories, addCategory } from '@/lib/database';
 
 export async function GET(request) {
-  if (!auth(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  return NextResponse.json(getCategories());
+  const cookie = request.headers.get('cookie') || '';
+  if (!verifyCookieToken(cookie) && !verifyApiAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const c = await getCategories();
+  return NextResponse.json(c);
 }
 
 export async function POST(request) {
-  if (!auth(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const cookie = request.headers.get('cookie') || '';
+  if (!verifyCookieToken(cookie) && !verifyApiAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const { name } = await request.json();
-  const ok = addCategory(name);
-  if (!ok) return NextResponse.json({ error: 'Category already exists' }, { status: 400 });
-  return NextResponse.json({ message: 'Category created' }, { status: 201 });
+  const success = await addCategory(name);
+  if (success) return NextResponse.json({ success: true });
+  return NextResponse.json({ error: 'Exists' }, { status: 400 });
 }

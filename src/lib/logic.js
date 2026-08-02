@@ -1,11 +1,11 @@
-const db = require('./database');
+﻿const db = require('./database');
 
-function calculateKpis() {
-  const transactions = db.getTransactions();
-  const debts = db.getDebts();
+async function calculateKpis() {
+  const transactions = await db.getTransactions();
+  const debts = await db.getDebts();
 
-  const initialBank = parseFloat(db.getSetting('initial_bank') || 0);
-  const initialCash = parseFloat(db.getSetting('initial_cash') || 0);
+  const initialBank = parseFloat((await db.getSetting('initial_bank')) || 0);
+  const initialCash = parseFloat((await db.getSetting('initial_cash')) || 0);
 
   let bankBalance = initialBank;
   let cashBalance = initialCash;
@@ -25,7 +25,6 @@ function calculateKpis() {
         totalReimbursable += (tx.reimbursable_amount || 0);
       }
     } else if (tx.type === 'Transfer') {
-      // ATM: Bank → Cash
       bankBalance -= amt;
       cashBalance += amt;
     }
@@ -51,8 +50,8 @@ function calculateKpis() {
   };
 }
 
-function getDaysUntilPayday() {
-  const payday = parseInt(db.getSetting('payday') || 25);
+async function getDaysUntilPayday() {
+  const payday = parseInt((await db.getSetting('payday')) || 25);
   const today = new Date();
   const nextPayday = new Date(today.getFullYear(), today.getMonth(), payday);
   if (nextPayday <= today) nextPayday.setMonth(nextPayday.getMonth() + 1);
@@ -60,13 +59,12 @@ function getDaysUntilPayday() {
   return Math.max(1, diff);
 }
 
-function calculateDailyAllowance(totalLiquidity) {
-  const days = getDaysUntilPayday();
+function calculateDailyAllowance(totalLiquidity, days) {
   return +(totalLiquidity / days).toFixed(2);
 }
 
-function getExpensesByCategory() {
-  const transactions = db.getTransactions();
+async function getExpensesByCategory() {
+  const transactions = await db.getTransactions();
   const categoryMap = {};
   for (const tx of transactions) {
     if (tx.type === 'Expense' && tx.category !== 'Debt Repayment') {
@@ -81,8 +79,8 @@ function getExpensesByCategory() {
     .sort((a, b) => b.trueSpend - a.trueSpend);
 }
 
-function getDailyCashflow() {
-  const transactions = db.getTransactions();
+async function getDailyCashflow() {
+  const transactions = await db.getTransactions();
   const dayMap = {};
   for (const tx of transactions) {
     const d = tx.date;

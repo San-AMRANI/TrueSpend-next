@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { verifyApiAuth, verifyCookieToken } from '@/lib/auth';
 import { calculateKpis, getDaysUntilPayday, calculateDailyAllowance } from '@/lib/logic';
 
@@ -7,8 +7,8 @@ export async function GET(request) {
   if (!verifyCookieToken(cookie) && !verifyApiAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const kpis = calculateKpis();
-  const days = getDaysUntilPayday();
-  const dailyAllowance = calculateDailyAllowance(kpis.totalLiquidity);
+  const kpis = await calculateKpis();
+  const days = await getDaysUntilPayday();
+  const dailyAllowance = calculateDailyAllowance(kpis.totalLiquidity, days);
   return NextResponse.json({ ...kpis, daysUntilPayday: days, dailyAllowance });
 }

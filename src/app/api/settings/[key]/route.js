@@ -1,14 +1,12 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { verifyApiAuth, verifyCookieToken } from '@/lib/auth';
-import { getSetting, updateSetting } from '@/lib/database';
-
-function auth(request) {
-  const cookie = request.headers.get('cookie') || '';
-  return verifyCookieToken(cookie) || verifyApiAuth(request);
-}
+import { getSetting } from '@/lib/database';
 
 export async function GET(request, { params }) {
-  const { key } = await params;
-  if (!auth(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  return NextResponse.json({ key: key, value: getSetting(key) });
+  const cookie = request.headers.get('cookie') || '';
+  if (!verifyCookieToken(cookie) && !verifyApiAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const value = await getSetting(params.key);
+  return NextResponse.json({ key: params.key, value });
 }
