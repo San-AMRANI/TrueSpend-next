@@ -1,60 +1,63 @@
-﻿// Seed database from V11 Full Report (July 2026)
-// Usage: node scripts/seed.js
-
-const { createClient } = require('@libsql/client');
-const path = require('path');
-const fs = require('fs');
-
-const DB_DIR = path.join(__dirname, '..', 'data');
-if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
-const DB_PATH = path.join(DB_DIR, 'truespend.db');
-
-const db = createClient({ url: `file:${DB_PATH}` });
+﻿require('dotenv').config();
+const mysql = require('mysql2/promise');
 
 async function seed() {
-  await db.execute(`
+  if (!process.env.MYSQL_HOST || !process.env.MYSQL_USER) {
+    console.error('ERROR: MySQL connection variables must be set in .env');
+    process.exit(1);
+  }
+
+  const db = await mysql.createConnection({
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_DATABASE,
+    multipleStatements: true
+  });
+
+  console.log('Connected to MySQL database.');
+
+  await db.query(`
     CREATE TABLE IF NOT EXISTS transactions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, title TEXT,
-      amount REAL NOT NULL, type TEXT NOT NULL, source_wallet TEXT NOT NULL,
-      category TEXT, notes TEXT, reimbursable_amount REAL DEFAULT 0, linked_contact TEXT
+      id INT AUTO_INCREMENT PRIMARY KEY, date VARCHAR(255) NOT NULL, title VARCHAR(255),
+      amount DOUBLE NOT NULL, type VARCHAR(50) NOT NULL, source_wallet VARCHAR(50) NOT NULL,
+      category VARCHAR(255), notes TEXT, reimbursable_amount DOUBLE DEFAULT 0, linked_contact VARCHAR(255)
     );
   `);
-  await db.execute(`
+  await db.query(`
     CREATE TABLE IF NOT EXISTS debts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT, contact_name TEXT NOT NULL, type TEXT NOT NULL,
-      original_amount REAL NOT NULL, remaining_balance REAL NOT NULL, status TEXT DEFAULT 'Pending', linked_transaction_id INTEGER
+      id INT AUTO_INCREMENT PRIMARY KEY, contact_name VARCHAR(255) NOT NULL, type VARCHAR(50) NOT NULL,
+      original_amount DOUBLE NOT NULL, remaining_balance DOUBLE NOT NULL, status VARCHAR(50) DEFAULT 'Pending', linked_transaction_id INT
     );
   `);
-  await db.execute(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);`);
-  await db.execute(`CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL);`);
+  await db.query(`CREATE TABLE IF NOT EXISTS settings (\`key\` VARCHAR(255) PRIMARY KEY, value TEXT);`);
+  await db.query(`CREATE TABLE IF NOT EXISTS categories (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL);`);
 
-  await db.execute(`DELETE FROM transactions;`);
-  await db.execute(`DELETE FROM debts;`);
-  await db.execute(`DELETE FROM sqlite_sequence WHERE name='transactions';`);
-  await db.execute(`DELETE FROM sqlite_sequence WHERE name='debts';`);
+  await db.query(`TRUNCATE TABLE transactions;`);
+  await db.query(`TRUNCATE TABLE debts;`);
 
-  await db.execute({ sql: `INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`, args: ['initial_bank', '0'] });
-  await db.execute({ sql: `INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`, args: ['initial_cash', '0'] });
-  await db.execute({ sql: `INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`, args: ['payday', '25'] });
+  await db.query(`REPLACE INTO settings (\`key\`, value) VALUES (?, ?)`, ['initial_bank', '0']);
+  await db.query(`REPLACE INTO settings (\`key\`, value) VALUES (?, ?)`, ['initial_cash', '0']);
+  await db.query(`REPLACE INTO settings (\`key\`, value) VALUES (?, ?)`, ['payday', '25']);
 
   const cats = ['Groceries','Dining Out','Entertainment','Transport','Utilities','Salary','ATM','Family','Grooming','Wardrobe','Income','Debts & Transfers','Debt Repayment'];
   for (const c of cats) {
-    await db.execute({ sql: `INSERT OR IGNORE INTO categories (name) VALUES (?)`, args: [c] });
+    await db.query(`INSERT IGNORE INTO categories (name) VALUES (?)`, [c]);
   }
 
   const D = '2026-07-15';
   async function tx(date, title, amount, type, wallet, cat, notes, reimb = 0, contact = '') {
-    const r = await db.execute({
-      sql: `INSERT INTO transactions (date, title, amount, type, source_wallet, category, notes, reimbursable_amount, linked_contact) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [date, title, amount, type, wallet, cat, notes, reimb, contact]
-    });
+    const [r] = await db.query(
+      `INSERT INTO transactions (date, title, amount, type, source_wallet, category, notes, reimbursable_amount, linked_contact) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [date, title, amount, type, wallet, cat, notes, reimb, contact]
+    );
     if (reimb > 0 && contact) {
-      await db.execute({
-        sql: `INSERT INTO debts (contact_name, type, original_amount, remaining_balance, status, linked_transaction_id) VALUES (?, 'Receivable', ?, ?, 'Pending', ?)`,
-        args: [contact, reimb, reimb, r.lastInsertRowid.toString()]
-      });
+      await db.query(
+        `INSERT INTO debts (contact_name, type, original_amount, remaining_balance, status, linked_transaction_id) VALUES (?, 'Receivable', ?, ?, 'Pending', ?)`,
+        [contact, reimb, reimb, r.insertId]
+      );
     }
-    return r.lastInsertRowid;
+    return r.insertId;
   }
 
   await tx(D, 'Oracle R&D Center', 6036.70, 'Income', 'Bank', 'Salary', 'Salary / Payroll');
@@ -98,20 +101,20 @@ async function seed() {
   await tx(D, 'Barbershop (2)', 20.00, 'Expense', 'Cash', 'Grooming', 'Grooming (Cash)');
   await tx(D, 'Clothes', 190.00, 'Expense', 'Cash', 'Wardrobe', 'Cash paid (total 210 MAD; 20 MAD pending to seller)');
 
-  await db.execute({ sql: `INSERT INTO debts (contact_name, type, original_amount, remaining_balance, status) VALUES ('Clothes Seller', 'Payable', 20.00, 20.00, 'Pending')`, args: [] });
-  await db.execute({ sql: `INSERT INTO debts (contact_name, type, original_amount, remaining_balance, status) VALUES ('Friend (Cat supplies)', 'Receivable', 9.00, 9.00, 'Pending')`, args: [] });
+  await db.query(`INSERT INTO debts (contact_name, type, original_amount, remaining_balance, status) VALUES ('Clothes Seller', 'Payable', 20.00, 20.00, 'Pending')`);
+  await db.query(`INSERT INTO debts (contact_name, type, original_amount, remaining_balance, status) VALUES ('Friend (Cat supplies)', 'Receivable', 9.00, 9.00, 'Pending')`);
 
-  const loanDebtRes = await db.execute(`SELECT id FROM debts WHERE contact_name = 'Friend (200 Loan)' AND status = 'Pending'`);
-  if (loanDebtRes.rows.length > 0) {
-    const loanDebt = loanDebtRes.rows[0];
-    await db.execute({ sql: `UPDATE debts SET status = 'Cleared', remaining_balance = 0 WHERE id = ?`, args: [loanDebt.id] });
-    await db.execute({ sql: `INSERT INTO transactions (date, title, amount, type, source_wallet, category, notes) VALUES (?, ?, ?, 'Income', 'Cash', 'Debt Repayment', ?)`, args: [D, 'Settlement: Friend (200 Loan)', 200.00, 'Friend repaid 200 MAD cash loan in full'] });
+  const [loanDebtRes] = await db.query(`SELECT id FROM debts WHERE contact_name = 'Friend (200 Loan)' AND status = 'Pending'`);
+  if (loanDebtRes.length > 0) {
+    const loanDebt = loanDebtRes[0];
+    await db.query(`UPDATE debts SET status = 'Cleared', remaining_balance = 0 WHERE id = ?`, [loanDebt.id]);
+    await db.query(`INSERT INTO transactions (date, title, amount, type, source_wallet, category, notes) VALUES (?, ?, ?, 'Income', 'Cash', 'Debt Repayment', ?)`, [D, 'Settlement: Friend (200 Loan)', 200.00, 'Friend repaid 200 MAD cash loan in full']);
   }
 
   console.log('Verifying balances vs V11 report...');
-  const txs = await db.execute('SELECT * FROM transactions');
+  const [txs] = await db.query('SELECT * FROM transactions');
   let bank = 0, cash = 0;
-  for (const t of txs.rows) {
+  for (const t of txs) {
     if (t.type === 'Income') { if (t.source_wallet === 'Bank') bank += t.amount; else cash += t.amount; }
     else if (t.type === 'Expense') { if (t.source_wallet === 'Bank') bank -= t.amount; else cash -= t.amount; }
     else if (t.type === 'Transfer') { bank -= t.amount; cash += t.amount; }
@@ -119,13 +122,15 @@ async function seed() {
   console.log('Bank:  ' + bank.toFixed(2) + ' MAD  (expected: 2,157.28)');
   console.log('Cash:  ' + cash.toFixed(2) + ' MAD  (expected:    20.00)');
   console.log('Total: ' + (bank + cash).toFixed(2) + ' MAD  (expected: 2,177.28)');
-  const debtsRes = await db.execute(`SELECT * FROM debts WHERE status = 'Pending'`);
-  const debts = debtsRes.rows;
+  
+  const [debts] = await db.query(`SELECT * FROM debts WHERE status = 'Pending'`);
   const receivables = debts.filter(d => d.type === 'Receivable').reduce((s, d) => s + d.remaining_balance, 0);
   const payables = debts.filter(d => d.type === 'Payable').reduce((s, d) => s + d.remaining_balance, 0);
   console.log('Receivables: ' + receivables.toFixed(2) + ' MAD  (expected: 100.00)');
   console.log('Payables:    ' + payables.toFixed(2) + ' MAD  (expected:  20.00)');
   console.log('Net position: ' + (bank + cash + receivables - payables).toFixed(2) + ' MAD  (expected: 2,257.28)');
+  
+  await db.end();
 }
 
 seed().catch(console.error);
