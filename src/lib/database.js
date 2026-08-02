@@ -2,9 +2,38 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-const DB_DIR = path.join(process.cwd(), 'data');
-if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
-const DB_PATH = path.join(DB_DIR, 'truespend.db');
+const IS_VERCEL = !!process.env.VERCEL;
+let DB_PATH;
+
+if (IS_VERCEL) {
+  const TMP_DB_PATH = path.join('/tmp', 'truespend.db');
+  const BUNDLED_DB_PATH = path.join(process.cwd(), 'data', 'truespend.db');
+
+  if (!fs.existsSync(TMP_DB_PATH)) {
+    try {
+      if (fs.existsSync(BUNDLED_DB_PATH)) {
+        fs.copyFileSync(BUNDLED_DB_PATH, TMP_DB_PATH);
+        
+        // Copy WAL files if they exist
+        const BUNDLED_SHM = BUNDLED_DB_PATH + '-shm';
+        const BUNDLED_WAL = BUNDLED_DB_PATH + '-wal';
+        if (fs.existsSync(BUNDLED_SHM)) {
+          fs.copyFileSync(BUNDLED_SHM, TMP_DB_PATH + '-shm');
+        }
+        if (fs.existsSync(BUNDLED_WAL)) {
+          fs.copyFileSync(BUNDLED_WAL, TMP_DB_PATH + '-wal');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to copy database to /tmp:', err);
+    }
+  }
+  DB_PATH = TMP_DB_PATH;
+} else {
+  const DB_DIR = path.join(process.cwd(), 'data');
+  if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
+  DB_PATH = path.join(DB_DIR, 'truespend.db');
+}
 
 let db;
 function getDb() {
