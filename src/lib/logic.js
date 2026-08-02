@@ -1,4 +1,4 @@
-﻿const db = require('./database');
+import * as db from './database';
 
 async function calculateKpis() {
   const transactions = await db.getTransactions();
@@ -94,4 +94,4 @@ async function getDailyCashflow() {
   return Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date));
 }
 
-module.exports = { calculateKpis, getDaysUntilPayday, calculateDailyAllowance, getExpensesByCategory, getDailyCashflow };
+export { calculateKpis, getDaysUntilPayday, calculateDailyAllowance, getExpensesByCategory, getDailyCashflow };
