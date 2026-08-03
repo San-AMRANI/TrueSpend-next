@@ -1,13 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useDataRefresh } from '@/lib/dataRefresh';
 
 export default function RefreshOnDataChange() {
-  const router = useRouter();
-
   useDataRefresh(() => {
-    router.refresh();
+    window.location.reload();
   });
 
   return null;

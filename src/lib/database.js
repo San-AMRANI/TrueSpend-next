@@ -12,7 +12,8 @@ export async function initDb() {
       category VARCHAR(255),
       notes TEXT,
       reimbursable_amount NUMERIC DEFAULT 0,
-      linked_contact VARCHAR(255)
+      linked_contact VARCHAR(255),
+      linked_debt_id INTEGER
     );
   `;
   await sql`
@@ -41,6 +42,7 @@ export async function initDb() {
 
   try { await sql`ALTER TABLE transactions ADD COLUMN title VARCHAR(255)`; } catch(e) {}
   try { await sql`ALTER TABLE debts ADD COLUMN linked_transaction_id INTEGER`; } catch(e) {}
+  try { await sql`ALTER TABLE transactions ADD COLUMN linked_debt_id INTEGER`; } catch(e) {}
 
   const settings = [['initial_bank','0'], ['initial_cash','0'], ['payday','25']];
   for (const [k, v] of settings) {
@@ -100,13 +102,90 @@ export async function addTransaction({ date, title, amount, type, source_wallet,
   return insertId;
 }
 
+async function getTransactionById(id) {
+  const { rows } = await sql`SELECT * FROM transactions WHERE id = ${id}`;
+  return rows.length > 0 ? rows[0] : null;
+}
+
+async function getDebtByLinkedTransactionId(transactionId) {
+  const { rows } = await sql`SELECT * FROM debts WHERE linked_transaction_id = ${transactionId}`;
+  return rows;
+}
+
+async function getDebtById(debtId) {
+  const { rows } = await sql`SELECT * FROM debts WHERE id = ${debtId}`;
+  return rows.length > 0 ? rows[0] : null;
+}
+
+async function recomputeDebtFromLedger(debtId) {
+  const debt = await getDebtById(debtId);
+  if (!debt) return;
+
+  const { rows: settlementRows } = await sql`
+    SELECT COALESCE(SUM(amount), 0) AS settled_amount
+    FROM transactions
+    WHERE linked_debt_id = ${debtId}
+  `;
+  const settledAmount = parseFloat(settlementRows[0]?.settled_amount || 0);
+  const remaining = Math.max(0, parseFloat(debt.original_amount) - settledAmount);
+  const status = remaining <= 0 ? 'Cleared' : 'Pending';
+
+  await sql`
+    UPDATE debts
+    SET remaining_balance = ${remaining}, status = ${status}
+    WHERE id = ${debtId}
+  `;
+}
+
 export async function deleteTransaction(id) {
   if (!Number.isInteger(id) || id <= 0) {
     throw new Error(`Invalid transaction id: ${id}`);
   }
 
-  await sql`DELETE FROM debts WHERE linked_transaction_id = ${id}`;
+  const tx = await getTransactionById(id);
+  if (!tx) {
+    return { rowCount: 0 };
+  }
+
+  const linkedDebts = await getDebtByLinkedTransactionId(id);
+  for (const debt of linkedDebts) {
+    await sql`DELETE FROM transactions WHERE linked_debt_id = ${debt.id}`;
+    await sql`DELETE FROM debts WHERE id = ${debt.id}`;
+  }
+
+  if (tx.linked_debt_id) {
+    await sql`DELETE FROM transactions WHERE id = ${id}`;
+    await recomputeDebtFromLedger(tx.linked_debt_id);
+    return { rowCount: 1 };
+  }
+
+  if (tx.category === 'Debt Repayment') {
+    const inferredDebtId = await inferDebtIdFromSettlementTransaction(tx);
+    if (inferredDebtId) {
+      await sql`UPDATE transactions SET linked_debt_id = ${inferredDebtId} WHERE id = ${id}`;
+      await sql`DELETE FROM transactions WHERE id = ${id}`;
+      await recomputeDebtFromLedger(inferredDebtId);
+      return { rowCount: 1 };
+    }
+  }
+
   return sql`DELETE FROM transactions WHERE id = ${id}`;
+}
+
+async function inferDebtIdFromSettlementTransaction(tx) {
+  const contactFromTitle = (tx.title || '').replace(/^Settlement:\s*/i, '').trim();
+  const contactFromNotes = (tx.notes || '').match(/with\s+(.+)$/i)?.[1]?.trim();
+  const contactName = contactFromTitle || contactFromNotes || null;
+  if (!contactName) return null;
+
+  const { rows } = await sql`
+    SELECT id
+    FROM debts
+    WHERE contact_name = ${contactName}
+    ORDER BY id DESC
+    LIMIT 1
+  `;
+  return rows.length > 0 ? rows[0].id : null;
 }
 
 export async function getTransactions() {
@@ -144,7 +223,7 @@ export async function settleDebt({ debt_id, wallet, amount_paid = null }) {
   const txType = debt.type === 'Receivable' ? 'Income' : 'Expense';
   const today = new Date().toISOString().split('T')[0];
   await sql`
-    INSERT INTO transactions (date, title, amount, type, source_wallet, category, notes)
-    VALUES (${today}, ${`Settlement: ${debt.contact_name}`}, ${actual}, ${txType}, ${wallet}, 'Debt Repayment', ${`Settled ${debt.type} with ${debt.contact_name}`})
+    INSERT INTO transactions (date, title, amount, type, source_wallet, category, notes, linked_debt_id)
+    VALUES (${today}, ${`Settlement: ${debt.contact_name}`}, ${actual}, ${txType}, ${wallet}, 'Debt Repayment', ${`Settled ${debt.type} with ${debt.contact_name}`}, ${debt_id})
   `;
 }
