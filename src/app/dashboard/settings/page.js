@@ -97,9 +97,9 @@ export default function SettingsPage() {
 
           <div className="section-header">REST API</div>
           <div className="card">
-            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:8}}>All endpoints are available for external access via HTTP Basic Auth:</p>
+            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:8}}>KPIs are now calculated directly on the dashboard request. Use the dashboard route or the transaction/debt pages for live data updates.</p>
             <code style={{display:'block', background:'var(--surface2)', padding:'10px 14px', borderRadius:6, fontSize:'0.78rem', color:'var(--green)'}}>
-              curl -u SanSpend:'!4ZwqYFBHX*r@f' http://[host]/api/kpis
+              Dashboard KPIs are server-rendered and always recomputed from current money movement.
             </code>
           </div>
 
