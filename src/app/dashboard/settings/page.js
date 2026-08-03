@@ -91,9 +91,9 @@ export default function SettingsPage() {
 
           <div className="section-header">REST API</div>
           <div className="card">
-            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:8}}>Dashboard metrics are now computed from the live ledger on every page request.</p>
+            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:8}}>This area is now focused on settings and categories only.</p>
             <code style={{display:'block', background:'var(--surface2)', padding:'10px 14px', borderRadius:6, fontSize:'0.78rem', color:'var(--green)'}}>
-              No KPI cache is stored; the dashboard always rebuilds from transactions and debt settlements.
+              Changes here affect the live transaction and debt pages immediately.
             </code>
           </div>
 
