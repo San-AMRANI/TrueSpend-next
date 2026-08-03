@@ -157,12 +157,16 @@ details[open] summary { color: var(--text); }
 
 /* Mobile */
 @media (max-width: 768px) {
+  h1 { font-size: 1.5rem !important; margin-bottom: 20px !important; }
   .grid-4 { grid-template-columns: 1fr 1fr; }
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
-  .metric-card .value { font-size: 1.3rem; }
-  .tx-card .tx-top { flex-direction: column; }
-  .tx-card .tx-amount { font-size: 1.1rem; }
+  .metric-card { padding: 16px 12px; }
+  .metric-card .value { font-size: 1.25rem; }
+  .metric-card .label { font-size: 0.7rem; }
+  .tx-card { padding: 12px; }
+  .tx-card .tx-top { flex-direction: column; gap: 4px; }
+  .tx-card .tx-amount { font-size: 1.1rem; align-self: flex-start; }
 }
 
 @media (max-width: 480px) {

@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 import { useState, useEffect, useCallback } from 'react';
 import styles from '../dashboard.module.css';
+import { LogoutButton } from '../LogoutButton';
 
 export default function SettingsPage() {
   const [categories, setCategories] = useState([]);
@@ -82,6 +83,12 @@ export default function SettingsPage() {
             <code style={{display:'block', background:'var(--surface2)', padding:'10px 14px', borderRadius:6, fontSize:'0.78rem', color:'var(--green)'}}>
               curl -u SanSpend:'!4ZwqYFBHX*r@f' http://[host]/api/kpis
             </code>
+          </div>
+
+          <div className="section-header" style={{marginTop: 24}}>Account Actions</div>
+          <div className="card" style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
+            <a href="/api/export" className="btn btn-ghost" download>⬇ Export CSV Data</a>
+            <LogoutButton />
           </div>
         </div>
 
