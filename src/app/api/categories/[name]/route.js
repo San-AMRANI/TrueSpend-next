@@ -10,7 +10,8 @@ export async function DELETE(request, { params }) {
   if (!verifyCookieToken(cookie) && !verifyApiAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const name = decodeURIComponent(params.name);
+  const resolvedParams = await params;
+  const name = decodeURIComponent(resolvedParams?.name ?? '');
   await deleteCategory(name);
   return NextResponse.json({ success: true });
 }
