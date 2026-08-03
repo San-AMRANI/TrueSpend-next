@@ -1,7 +1,8 @@
-﻿'use client';
-import { useState, useEffect, useCallback } from 'react';
-import styles from './dashboard.module.css';
-import { useDataRefresh } from '@/lib/dataRefresh';
+﻿import styles from './dashboard.module.css';
+import { calculateKpis, getDaysUntilPayday, calculateDailyAllowance } from '@/lib/logic';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const fmt = (n) => `${Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
 
@@ -15,25 +16,10 @@ function MetricCard({ label, value, color = 'green', unit = 'MAD' }) {
   );
 }
 
-export default function DashboardPage() {
-  const [kpis, setKpis] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchKpis = useCallback(async () => {
-    setLoading(true);
-    const res = await fetch('/api/kpis', { cache: 'no-store' });
-    const data = await res.json();
-    setKpis(data);
-    setLoading(false);
-  }, []);
-
-  useDataRefresh(fetchKpis);
-
-  useEffect(() => {
-    fetchKpis();
-  }, [fetchKpis]);
-
-  if (loading) return <div className={styles.loading}>Loading data...</div>;
+export default async function DashboardPage() {
+  const kpis = await calculateKpis();
+  const daysUntilPayday = await getDaysUntilPayday();
+  const dailyAllowance = calculateDailyAllowance(kpis.totalLiquidity, daysUntilPayday);
 
   return (
     <div>
@@ -59,9 +45,9 @@ export default function DashboardPage() {
           <div className="section-header">Spending Pace</div>
           <div className="grid-2" style={{marginBottom: 12}}>
             <MetricCard label="True Spend" value={kpis.adjustedTrueSpend} color="orange" />
-            <MetricCard label="Days to Payday" value={kpis.daysUntilPayday} color="neutral" unit="days" />
+            <MetricCard label="Days to Payday" value={daysUntilPayday} color="neutral" unit="days" />
           </div>
-          <MetricCard label="Daily Allowance" value={kpis.dailyAllowance} color="blue" />
+          <MetricCard label="Daily Allowance" value={dailyAllowance} color="blue" />
         </div>
       </div>
     </div>
