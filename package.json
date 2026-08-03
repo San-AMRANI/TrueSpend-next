@@ -8,8 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
+    "@vercel/postgres": "^0.10.0",
     "dotenv": "^17.4.2",
-    "mysql2": "^3.23.2",
     "next": "16.2.12",
     "react": "19.2.4",
     "react-dom": "19.2.4",
