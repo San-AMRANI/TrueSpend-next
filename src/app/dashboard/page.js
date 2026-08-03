@@ -1,5 +1,5 @@
 ﻿import styles from './dashboard.module.css';
-import { calculateKpis, getDaysUntilPayday, calculateDailyAllowance } from '@/lib/logic';
+import { buildLedgerSnapshot, getDaysUntilPayday, calculateDailyAllowance } from '@/lib/financials';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -17,7 +17,7 @@ function MetricCard({ label, value, color = 'green', unit = 'MAD' }) {
 }
 
 export default async function DashboardPage() {
-  const kpis = await calculateKpis();
+  const kpis = await buildLedgerSnapshot();
   const daysUntilPayday = await getDaysUntilPayday();
   const dailyAllowance = calculateDailyAllowance(kpis.totalLiquidity, daysUntilPayday);
 

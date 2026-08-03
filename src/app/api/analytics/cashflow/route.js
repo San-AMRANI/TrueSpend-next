@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from 'next/server';
 import { verifyApiAuth, verifyCookieToken } from '@/lib/auth';
-import { getDailyCashflow } from '@/lib/logic';
+import { getDailyCashflow } from '@/lib/financials';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

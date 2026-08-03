@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import styles from '../dashboard.module.css';
-import { useDataRefresh } from '@/lib/dataRefresh';
 
 const COLORS = ['#6366f1','#22c55e','#f97316','#3b82f6','#a855f7','#eab308','#ef4444','#14b8a6','#f43f5e','#8b5cf6'];
 const fmt = (n) => `${Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
@@ -22,8 +21,6 @@ export default function AnalyticsPage() {
     setCashflowData(cf);
     setLoading(false);
   }, []);
-
-  useDataRefresh(fetchAll);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 

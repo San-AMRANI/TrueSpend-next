@@ -1,7 +1,6 @@
 ﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
 import styles from '../dashboard.module.css';
-import { notifyDataChanged, useDataRefresh } from '@/lib/dataRefresh';
 
 const fmt = (n) => `${Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
 
@@ -22,8 +21,6 @@ export default function DebtsPage() {
     setLoading(false);
   }, []);
 
-  useDataRefresh(fetchDebts);
-
   useEffect(() => { fetchDebts(); }, [fetchDebts]);
 
   async function addDebt(e) {
@@ -36,7 +33,6 @@ export default function DebtsPage() {
     setDebtForm({ contact_name: '', type: 'Receivable', amount: '' });
     showMsg('✅ Debt recorded!');
     await fetchDebts();
-    notifyDataChanged();
   }
 
   async function settleDebt(debt_id, remaining_balance) {
@@ -50,7 +46,6 @@ export default function DebtsPage() {
     }
     showMsg('✅ Debt settled!');
     await fetchDebts();
-    notifyDataChanged();
   }
 
   if (loading) return <div className={styles.loading}>Loading data...</div>;

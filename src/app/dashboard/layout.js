@@ -1,5 +1,4 @@
 ﻿import styles from './dashboard.module.css';
-import RefreshOnDataChange from './RefreshOnDataChange';
 import { LogoutButton } from './LogoutButton'; // Need to create this client component
 
 export default function DashboardLayout({ children }) {
@@ -25,7 +24,6 @@ export default function DashboardLayout({ children }) {
 
       {/* Main Content */}
       <main className={styles.mainContent}>
-        <RefreshOnDataChange />
         {children}
       </main>
     </div>

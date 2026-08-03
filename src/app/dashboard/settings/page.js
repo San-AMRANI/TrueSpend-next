@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from '../dashboard.module.css';
 import { LogoutButton } from '../LogoutButton';
-import { notifyDataChanged, useDataRefresh } from '@/lib/dataRefresh';
 
 export default function SettingsPage() {
   const [categories, setCategories] = useState([]);
@@ -26,8 +25,6 @@ export default function SettingsPage() {
     setLoading(false);
   }, []);
 
-  useDataRefresh(fetchAll);
-
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   async function addCategory(e) {
@@ -39,7 +36,6 @@ export default function SettingsPage() {
     }
     setNewCat('');
     await fetchAll();
-    notifyDataChanged();
   }
 
   async function deleteCategory(name) {
@@ -49,7 +45,6 @@ export default function SettingsPage() {
       return;
     }
     await fetchAll();
-    notifyDataChanged();
   }
 
   async function saveSettings(e) {
@@ -64,7 +59,6 @@ export default function SettingsPage() {
       return;
     }
     showMsg('✅ Settings saved!');
-    notifyDataChanged();
   }
 
   if (loading) return <div className={styles.loading}>Loading data...</div>;
@@ -97,9 +91,9 @@ export default function SettingsPage() {
 
           <div className="section-header">REST API</div>
           <div className="card">
-            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:8}}>KPIs are now calculated directly on the dashboard request. Use the dashboard route or the transaction/debt pages for live data updates.</p>
+            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:8}}>Dashboard metrics are now computed from the live ledger on every page request.</p>
             <code style={{display:'block', background:'var(--surface2)', padding:'10px 14px', borderRadius:6, fontSize:'0.78rem', color:'var(--green)'}}>
-              Dashboard KPIs are server-rendered and always recomputed from current money movement.
+              No KPI cache is stored; the dashboard always rebuilds from transactions and debt settlements.
             </code>
           </div>
 

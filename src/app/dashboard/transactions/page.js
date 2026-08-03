@@ -1,7 +1,6 @@
 ﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
 import styles from '../dashboard.module.css';
-import { notifyDataChanged, useDataRefresh } from '@/lib/dataRefresh';
 
 const fmt = (n) => `${Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
 
@@ -27,8 +26,6 @@ export default function TransactionsPage() {
     setLoading(false);
   }, []);
 
-  useDataRefresh(fetchAll);
-
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
@@ -53,7 +50,6 @@ export default function TransactionsPage() {
     setTxForm(f => ({ ...f, title: '', amount: '', notes: '', reimbursable_amount: '', linked_contact: '', is_split: false }));
     showMsg('✅ Transaction saved!');
     await fetchAll();
-    notifyDataChanged();
   }
 
   async function addAtm(e) {
@@ -69,7 +65,6 @@ export default function TransactionsPage() {
     setAtmForm(f => ({ ...f, amount: '', notes: '' }));
     showMsg('✅ ATM Withdrawal recorded!');
     await fetchAll();
-    notifyDataChanged();
   }
 
   async function deleteTx(id) {
@@ -81,7 +76,6 @@ export default function TransactionsPage() {
     }
     showMsg('✅ Transaction deleted!');
     await fetchAll();
-    notifyDataChanged();
   }
 
   if (loading) return <div className={styles.loading}>Loading data...</div>;
