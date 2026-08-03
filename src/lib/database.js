@@ -1,4 +1,4 @@
-﻿import { sql } from '@vercel/postgres';
+import { sql } from '@vercel/postgres';
 
 export async function initDb() {
   await sql`
@@ -127,13 +127,14 @@ export async function settleDebt({ debt_id, wallet, amount_paid = null }) {
   const debt = rows.length > 0 ? rows[0] : null;
   if (!debt) return;
 
-  const actual = (amount_paid === null || amount_paid >= debt.remaining_balance) ? debt.remaining_balance : amount_paid;
-  const isFullSettlement = actual >= debt.remaining_balance;
+  const remaining = parseFloat(debt.remaining_balance);
+  const actual = (amount_paid === null || parseFloat(amount_paid) >= remaining) ? remaining : parseFloat(amount_paid);
+  const isFullSettlement = actual >= remaining;
 
   if (isFullSettlement) {
     await sql`UPDATE debts SET status = 'Cleared', remaining_balance = 0 WHERE id = ${debt_id}`;
   } else {
-    await sql`UPDATE debts SET remaining_balance = ${debt.remaining_balance - actual} WHERE id = ${debt_id}`;
+    await sql`UPDATE debts SET remaining_balance = ${remaining - actual} WHERE id = ${debt_id}`;
   }
 
   const txType = debt.type === 'Receivable' ? 'Income' : 'Expense';

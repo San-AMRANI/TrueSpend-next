@@ -13,7 +13,7 @@ async function calculateKpis() {
   let totalGrossExpenses = 0;
 
   for (const tx of transactions) {
-    const amt = tx.amount;
+    const amt = parseFloat(tx.amount);
     if (tx.type === 'Income') {
       if (tx.source_wallet === 'Bank') bankBalance += amt;
       else cashBalance += amt;
@@ -22,7 +22,7 @@ async function calculateKpis() {
       else cashBalance -= amt;
       if (tx.category !== 'Debt Repayment') {
         totalGrossExpenses += amt;
-        totalReimbursable += (tx.reimbursable_amount || 0);
+        totalReimbursable += parseFloat(tx.reimbursable_amount || 0);
       }
     } else if (tx.type === 'Transfer') {
       bankBalance -= amt;
@@ -31,8 +31,8 @@ async function calculateKpis() {
   }
 
   const pendingDebts = debts.filter(d => d.status === 'Pending');
-  const receivables = pendingDebts.filter(d => d.type === 'Receivable').reduce((s, d) => s + d.remaining_balance, 0);
-  const payables = pendingDebts.filter(d => d.type === 'Payable').reduce((s, d) => s + d.remaining_balance, 0);
+  const receivables = pendingDebts.filter(d => d.type === 'Receivable').reduce((s, d) => s + parseFloat(d.remaining_balance), 0);
+  const payables = pendingDebts.filter(d => d.type === 'Payable').reduce((s, d) => s + parseFloat(d.remaining_balance), 0);
 
   const totalLiquidity = bankBalance + cashBalance;
   const netPosition = totalLiquidity + receivables - payables;
@@ -69,7 +69,7 @@ async function getExpensesByCategory() {
   for (const tx of transactions) {
     if (tx.type === 'Expense' && tx.category !== 'Debt Repayment') {
       const cat = tx.category || 'Uncategorized';
-      const trueSpend = tx.amount - (tx.reimbursable_amount || 0);
+      const trueSpend = parseFloat(tx.amount) - parseFloat(tx.reimbursable_amount || 0);
       categoryMap[cat] = (categoryMap[cat] || 0) + trueSpend;
     }
   }
@@ -85,10 +85,10 @@ async function getDailyCashflow() {
   for (const tx of transactions) {
     const d = tx.date;
     if (!dayMap[d]) dayMap[d] = { date: d, income: 0, expense: 0, trueSpend: 0 };
-    if (tx.type === 'Income') dayMap[d].income += tx.amount;
+    if (tx.type === 'Income') dayMap[d].income += parseFloat(tx.amount);
     if (tx.type === 'Expense') {
-      dayMap[d].expense += tx.amount;
-      dayMap[d].trueSpend += tx.amount - (tx.reimbursable_amount || 0);
+      dayMap[d].expense += parseFloat(tx.amount);
+      dayMap[d].trueSpend += parseFloat(tx.amount) - parseFloat(tx.reimbursable_amount || 0);
     }
   }
   return Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date));
