@@ -1,4 +1,3 @@
-import { sql } from '@vercel/postgres';
 import * as db from './database';
 
 function toNumber(value) {
@@ -28,30 +27,11 @@ async function getSettingsSnapshot() {
   };
 }
 
-async function getSettlementBackings() {
-  const { rows } = await sql`
-    SELECT linked_debt_id, COALESCE(SUM(amount), 0) AS settled_amount
-    FROM transactions
-    WHERE linked_debt_id IS NOT NULL
-    GROUP BY linked_debt_id
-  `;
-
-  return new Map(rows.map(row => [Number(row.linked_debt_id), toNumber(row.settled_amount)]));
-}
-
 async function getDebtSnapshot() {
-  const [debts, settlementBackings] = await Promise.all([
-    db.getDebts(),
-    getSettlementBackings(),
-  ]);
+  const debts = await db.getDebts();
 
   const normalizedDebts = debts.map(debt => {
-    const settledAmount = settlementBackings.get(Number(debt.id)) || 0;
-    const originalAmount = toNumber(debt.original_amount);
-    const baseRemaining = toNumber(debt.remaining_balance);
-    const remainingBalance = settledAmount > 0
-      ? Math.max(0, originalAmount - settledAmount)
-      : baseRemaining;
+    const remainingBalance = toNumber(debt.remaining_balance);
 
     return {
       ...debt,
@@ -130,7 +110,6 @@ async function buildKpiSnapshot() {
     adjustedTrueSpend: +adjustedTrueSpend.toFixed(2),
     totalGrossExpenses: +totalGrossExpenses.toFixed(2),
     daysUntilPayday: getDaysUntilPaydayValue(settings.payday),
-    dailyAllowance: null,
     transactions: orderedTransactions,
     debts: debtSnapshot.normalizedDebts,
   };
