@@ -101,8 +101,12 @@ export async function addTransaction({ date, title, amount, type, source_wallet,
 }
 
 export async function deleteTransaction(id) {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error(`Invalid transaction id: ${id}`);
+  }
+
   await sql`DELETE FROM debts WHERE linked_transaction_id = ${id}`;
-  await sql`DELETE FROM transactions WHERE id = ${id}`;
+  return sql`DELETE FROM transactions WHERE id = ${id}`;
 }
 
 export async function getTransactions() {
