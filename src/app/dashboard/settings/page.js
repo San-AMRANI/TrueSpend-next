@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from '../dashboard.module.css';
 import { LogoutButton } from '../LogoutButton';
+import { notifyDataChanged, useDataRefresh } from '@/lib/dataRefresh';
 
 export default function SettingsPage() {
   const [categories, setCategories] = useState([]);
@@ -15,38 +16,55 @@ export default function SettingsPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     const [cats, ib, ic, pd] = await Promise.all([
-      fetch('/api/categories').then(r => r.json()),
-      fetch('/api/settings/initial_bank').then(r => r.json()),
-      fetch('/api/settings/initial_cash').then(r => r.json()),
-      fetch('/api/settings/payday').then(r => r.json()),
+      fetch('/api/categories', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/settings/initial_bank', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/settings/initial_cash', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/settings/payday', { cache: 'no-store' }).then(r => r.json()),
     ]);
     setCategories(cats);
     setSettingsForm({ initial_bank: ib.value || 0, initial_cash: ic.value || 0, payday: pd.value || 25 });
     setLoading(false);
   }, []);
 
+  useDataRefresh(fetchAll);
+
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   async function addCategory(e) {
     e.preventDefault();
     const res = await fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newCat.trim() }) });
-    if (res.ok) { setNewCat(''); fetchAll(); }
-    else showMsg('❌ Category already exists!');
+    if (!res.ok) {
+      showMsg('❌ Category already exists!');
+      return;
+    }
+    setNewCat('');
+    await fetchAll();
+    notifyDataChanged();
   }
 
   async function deleteCategory(name) {
-    await fetch(`/api/categories/${encodeURIComponent(name)}`, { method: 'DELETE' });
-    fetchAll();
+    const res = await fetch(`/api/categories/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    if (!res.ok) {
+      showMsg('❌ Failed to remove category');
+      return;
+    }
+    await fetchAll();
+    notifyDataChanged();
   }
 
   async function saveSettings(e) {
     e.preventDefault();
-    await Promise.all([
+    const responses = await Promise.all([
       fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'initial_bank', value: String(settingsForm.initial_bank) }) }),
       fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'initial_cash', value: String(settingsForm.initial_cash) }) }),
       fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'payday', value: String(settingsForm.payday) }) }),
     ]);
+    if (responses.some(res => !res.ok)) {
+      showMsg('❌ Failed to save settings');
+      return;
+    }
     showMsg('✅ Settings saved!');
+    notifyDataChanged();
   }
 
   if (loading) return <div className={styles.loading}>Loading data...</div>;

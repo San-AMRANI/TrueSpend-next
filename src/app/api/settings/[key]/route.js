@@ -2,6 +2,9 @@
 import { verifyApiAuth, verifyCookieToken } from '@/lib/auth';
 import { getSetting } from '@/lib/database';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request, { params }) {
   const cookie = request.headers.get('cookie') || '';
   if (!verifyCookieToken(cookie) && !verifyApiAuth(request)) {

@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
 import styles from './dashboard.module.css';
+import { useDataRefresh } from '@/lib/dataRefresh';
 
 const fmt = (n) => `${Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
 
@@ -20,11 +21,13 @@ export default function DashboardPage() {
 
   const fetchKpis = useCallback(async () => {
     setLoading(true);
-    const res = await fetch('/api/kpis');
+    const res = await fetch('/api/kpis', { cache: 'no-store' });
     const data = await res.json();
     setKpis(data);
     setLoading(false);
   }, []);
+
+  useDataRefresh(fetchKpis);
 
   useEffect(() => {
     fetchKpis();

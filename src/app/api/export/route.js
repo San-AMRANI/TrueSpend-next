@@ -1,6 +1,9 @@
 ﻿import { NextResponse } from 'next/server';
 import { getTransactions } from '@/lib/database';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request) {
   // No auth for export as per original or maybe it was there? Original doesn't seem to have verifyApiAuth
   const txs = await getTransactions();

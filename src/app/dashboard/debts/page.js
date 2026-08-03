@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
 import styles from '../dashboard.module.css';
+import { notifyDataChanged, useDataRefresh } from '@/lib/dataRefresh';
 
 const fmt = (n) => `${Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
 
@@ -16,28 +17,40 @@ export default function DebtsPage() {
 
   const fetchDebts = useCallback(async () => {
     setLoading(true);
-    const d = await fetch('/api/debts').then(r => r.json());
+    const d = await fetch('/api/debts', { cache: 'no-store' }).then(r => r.json());
     setDebts(d);
     setLoading(false);
   }, []);
+
+  useDataRefresh(fetchDebts);
 
   useEffect(() => { fetchDebts(); }, [fetchDebts]);
 
   async function addDebt(e) {
     e.preventDefault();
-    await fetch('/api/debts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contact_name: debtForm.contact_name, type: debtForm.type, amount: parseFloat(debtForm.amount) }) });
+    const res = await fetch('/api/debts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contact_name: debtForm.contact_name, type: debtForm.type, amount: parseFloat(debtForm.amount) }) });
+    if (!res.ok) {
+      showMsg('❌ Failed to add debt');
+      return;
+    }
     setDebtForm({ contact_name: '', type: 'Receivable', amount: '' });
     showMsg('✅ Debt recorded!');
-    fetchDebts();
+    await fetchDebts();
+    notifyDataChanged();
   }
 
   async function settleDebt(debt_id, remaining_balance) {
     const sf = settleForm[debt_id] || {};
     const wallet = sf.wallet || 'Bank';
     const amount_paid = sf.amount !== undefined ? parseFloat(sf.amount) : null;
-    await fetch('/api/debts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ debt_id, wallet, amount_paid }) });
+    const res = await fetch('/api/debts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ debt_id, wallet, amount_paid }) });
+    if (!res.ok) {
+      showMsg('❌ Failed to settle debt');
+      return;
+    }
     showMsg('✅ Debt settled!');
-    fetchDebts();
+    await fetchDebts();
+    notifyDataChanged();
   }
 
   if (loading) return <div className={styles.loading}>Loading data...</div>;

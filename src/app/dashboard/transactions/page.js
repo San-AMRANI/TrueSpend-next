@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
 import styles from '../dashboard.module.css';
+import { notifyDataChanged, useDataRefresh } from '@/lib/dataRefresh';
 
 const fmt = (n) => `${Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
 
@@ -18,13 +19,15 @@ export default function TransactionsPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     const [t, cats] = await Promise.all([
-      fetch('/api/transactions').then(r => r.json()),
-      fetch('/api/categories').then(r => r.json()),
+      fetch('/api/transactions', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/categories', { cache: 'no-store' }).then(r => r.json()),
     ]);
     setTransactions(t);
     setCategories(cats);
     setLoading(false);
   }, []);
+
+  useDataRefresh(fetchAll);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -42,27 +45,43 @@ export default function TransactionsPage() {
       notes: txForm.notes, reimbursable_amount: txForm.is_split ? parseFloat(txForm.reimbursable_amount || 0) : 0,
       linked_contact: txForm.is_split ? txForm.linked_contact : '',
     };
-    await fetch('/api/transactions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await fetch('/api/transactions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) {
+      showMsg('❌ Failed to save transaction');
+      return;
+    }
     setTxForm(f => ({ ...f, title: '', amount: '', notes: '', reimbursable_amount: '', linked_contact: '', is_split: false }));
     showMsg('✅ Transaction saved!');
-    fetchAll();
+    await fetchAll();
+    notifyDataChanged();
   }
 
   async function addAtm(e) {
     e.preventDefault();
-    await fetch('/api/transactions', {
+    const res = await fetch('/api/transactions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date: atmForm.date, title: 'ATM Withdrawal', amount: parseFloat(atmForm.amount), type: 'Transfer', source_wallet: 'Bank', category: 'ATM', notes: atmForm.notes }),
     });
+    if (!res.ok) {
+      showMsg('❌ Failed to record ATM withdrawal');
+      return;
+    }
     setAtmForm(f => ({ ...f, amount: '', notes: '' }));
     showMsg('✅ ATM Withdrawal recorded!');
-    fetchAll();
+    await fetchAll();
+    notifyDataChanged();
   }
 
   async function deleteTx(id) {
     if (!confirm('Delete this transaction?')) return;
-    await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-    fetchAll();
+    const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      showMsg('❌ Failed to delete transaction');
+      return;
+    }
+    showMsg('✅ Transaction deleted!');
+    await fetchAll();
+    notifyDataChanged();
   }
 
   if (loading) return <div className={styles.loading}>Loading data...</div>;
