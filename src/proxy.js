@@ -13,12 +13,6 @@ export function proxy(request) {
     return NextResponse.next();
   }
   
-  // Protected pages - require cookie
-  const authToken = request.cookies.get('auth_token')?.value;
-  if (authToken !== 'TrueSpend_Authorized') {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-  
   return NextResponse.next();
 }
 

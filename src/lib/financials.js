@@ -1,4 +1,3 @@
-import { sql } from '@vercel/postgres';
 import * as db from './database';
 
 function toNumber(value) {
@@ -32,36 +31,12 @@ async function getSnapshotSettings() {
   };
 }
 
-async function getLinkedDebtSettlementTotals() {
-  const { rows } = await sql`
-    SELECT linked_debt_id, COALESCE(SUM(amount), 0) AS settled_amount
-    FROM transactions
-    WHERE linked_debt_id IS NOT NULL
-    GROUP BY linked_debt_id
-  `;
-
-  return new Map(rows.map(row => [Number(row.linked_debt_id), toNumber(row.settled_amount)]));
-}
-
 async function buildDebtSnapshot() {
-  const [debts, settlementTotals] = await Promise.all([
-    db.getDebts(),
-    getLinkedDebtSettlementTotals(),
-  ]);
-
-  const normalizedDebts = debts.map(debt => {
-    const settledAmount = settlementTotals.get(Number(debt.id)) || 0;
-    const fallbackRemaining = toNumber(debt.remaining_balance);
-    const remainingBalance = settledAmount > 0
-      ? Math.max(0, toNumber(debt.original_amount) - settledAmount)
-      : fallbackRemaining;
-
-    return {
-      ...debt,
-      remaining_balance: +remainingBalance.toFixed(2),
-      status: remainingBalance <= 0 ? 'Cleared' : 'Pending',
-    };
-  });
+  const debts = await db.getDebts();
+  const normalizedDebts = debts.map(debt => ({
+    ...debt,
+    remaining_balance: +toNumber(debt.remaining_balance).toFixed(2),
+  }));
 
   const receivables = normalizedDebts
     .filter(debt => debt.status === 'Pending' && debt.type === 'Receivable')
