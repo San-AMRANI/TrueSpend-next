@@ -40,10 +40,6 @@ export async function initDb() {
     );
   `;
 
-  try { await sql`ALTER TABLE transactions ADD COLUMN title VARCHAR(255)`; } catch(e) {}
-  try { await sql`ALTER TABLE debts ADD COLUMN linked_transaction_id INTEGER`; } catch(e) {}
-  try { await sql`ALTER TABLE transactions ADD COLUMN linked_debt_id INTEGER`; } catch(e) {}
-
   const settings = [['initial_bank','0'], ['initial_cash','0'], ['payday','25']];
   for (const [k, v] of settings) {
     await sql`INSERT INTO settings (key, value) VALUES (${k}, ${v}) ON CONFLICT (key) DO NOTHING`;

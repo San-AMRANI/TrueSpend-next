@@ -26,11 +26,13 @@ export default function DashboardPage() {
 
     try {
       const response = await fetch('/api/kpi-snapshot', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Network response was not ok');
+      }
       setSnapshot(data);
     } catch (fetchError) {
-      setError('Unable to load live ledger data.');
+      setError(`Unable to load live ledger data: ${fetchError.message}`);
     } finally {
       setLoading(false);
     }
