@@ -86,24 +86,35 @@ function computeSnapshot(transactions, debts, settings) {
 
 export async function GET() {
   try {
+    console.log('KPI snapshot endpoint started.');
     await initDb();
-    const [transactions, debts, initial_bank, initial_cash, payday] = await Promise.all([
+    console.log('Database initialized.');
+
+    const promiseResults = await Promise.all([
       getTransactions(),
       getDebts(),
       getSetting('initial_bank'),
       getSetting('initial_cash'),
       getSetting('payday'),
     ]);
+    console.log('All promises resolved.');
 
-    const snapshot = computeSnapshot(transactions, debts, {
+    const [transactions, debts, initial_bank, initial_cash, payday] = promiseResults;
+    console.log(`Fetched ${transactions.length} transactions, ${debts.length} debts.`);
+
+    const settings = {
       initial_bank: initial_bank || '0',
       initial_cash: initial_cash || '0',
       payday: payday || '25',
-    });
+    };
+    console.log('Settings object created:', settings);
+
+    const snapshot = computeSnapshot(transactions, debts, settings);
+    console.log('Snapshot computed successfully.');
 
     return NextResponse.json(snapshot);
   } catch (error) {
-    console.error(error);
+    console.error('[CRITICAL] KPI Snapshot Error:', error);
     return NextResponse.json({ message: 'Error fetching KPI data', error: error.message }, { status: 500 });
   }
 }
