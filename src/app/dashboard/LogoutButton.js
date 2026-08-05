@@ -1,11 +1,11 @@
-﻿'use client';
+'use client';
 import { useRouter } from 'next/navigation';
 
 export function LogoutButton() {
   const router = useRouter();
 
-  async function logout() {
-    await fetch('/api/auth', { method: 'DELETE' });
+  function logout() {
+    document.cookie = 'token=; path=/; max-age=0';
     router.push('/login');
   }
 

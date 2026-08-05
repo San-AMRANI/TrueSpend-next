@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import styles from './login.module.css';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,17 +13,20 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const res = await fetch('/api/auth', {
+    const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ password }),
     });
+
     setLoading(false);
-    if (res.ok) {
+    const data = await res.json();
+
+    if (data.success) {
+      document.cookie = `token=${data.token}; path=/; max-age=604800`; // 7 days
       router.push('/dashboard');
-      router.refresh();
     } else {
-      setError('Invalid credentials. Please try again.');
+      setError(data.message || 'Invalid credentials. Please try again.');
     }
   }
 
@@ -39,11 +41,6 @@ export default function LoginPage() {
           {error && <div className="alert alert-error">{error}</div>}
 
           <div className="form-group">
-            <label className="form-label">Username</label>
-            <input className="form-input" type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" required />
-          </div>
-
-          <div className="form-group">
             <label className="form-label">Password</label>
             <input className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" required />
           </div>
@@ -53,7 +50,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className={styles.loginNote}>Session persists for 30 days</p>
+        <p className={styles.loginNote}>Session persists for 7 days</p>
       </div>
     </div>
   );
