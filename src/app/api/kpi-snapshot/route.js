@@ -111,6 +111,6 @@ export async function GET() {
     return NextResponse.json(snapshot);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ message: 'Error fetching KPI data' }, { status: 500 });
+    return NextResponse.json({ message: 'Error fetching KPI data', error: error.message }, { status: 500 });
   }
 }
