@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { initDb, getTransactions, getDebts, getSetting } from '@/lib/database';
 import { getDaysUntilPayday } from '@/lib/dates';
 
+export const dynamic = 'force-dynamic';
+
 function toNumber(value) {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -86,35 +88,23 @@ function computeSnapshot(transactions, debts, settings) {
 
 export async function GET() {
   try {
-    console.log('KPI snapshot endpoint started.');
     await initDb();
-    console.log('Database initialized.');
-
-    const promiseResults = await Promise.all([
+    const [transactions, debts, initial_bank, initial_cash, payday] = await Promise.all([
       getTransactions(),
       getDebts(),
       getSetting('initial_bank'),
       getSetting('initial_cash'),
       getSetting('payday'),
     ]);
-    console.log('All promises resolved.');
 
-    const [transactions, debts, initial_bank, initial_cash, payday] = promiseResults;
-    console.log(`Fetched ${transactions.length} transactions, ${debts.length} debts.`);
-
-    const settings = {
+    const snapshot = computeSnapshot(transactions, debts, {
       initial_bank: initial_bank || '0',
       initial_cash: initial_cash || '0',
       payday: payday || '25',
-    };
-    console.log('Settings object created:', settings);
-
-    const snapshot = computeSnapshot(transactions, debts, settings);
-    console.log('Snapshot computed successfully.');
+    });
 
     return NextResponse.json(snapshot);
   } catch (error) {
-    console.error('[CRITICAL] KPI Snapshot Error:', error);
     return NextResponse.json({ message: 'Error fetching KPI data', error: error.message }, { status: 500 });
   }
 }
