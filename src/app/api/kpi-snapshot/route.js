@@ -70,7 +70,7 @@ function computeSnapshot(transactions, debts, settings) {
   const netPosition = totalLiquidity + receivables - payables;
   const adjustedTrueSpend = totalGrossExpenses - totalReimbursable;
   const daysUntilPayday = getDaysUntilPayday(Number(settings.payday || 25));
-  const dailyAllowance = +(totalLiquidity / daysUntilPayday).toFixed(2);
+  const dailyAllowance = daysUntilPayday > 0 ? +(totalLiquidity / daysUntilPayday).toFixed(2) : totalLiquidity;
 
   return {
     bankBalance: +bankBalance.toFixed(2),
@@ -81,7 +81,7 @@ function computeSnapshot(transactions, debts, settings) {
     netPosition: +netPosition.toFixed(2),
     adjustedTrueSpend: +adjustedTrueSpend.toFixed(2),
     daysUntilPayday,
-    dailyAllowance,
+    dailyAllowance: +dailyAllowance.toFixed(2),
   };
 }
 
