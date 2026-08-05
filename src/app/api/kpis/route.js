@@ -1,14 +1,14 @@
 
 import { NextResponse } from 'next/server';
 import { getTransactions } from '@/lib/database';
-import { getSettings } from '@/lib/database';
+import { getSetting } from '@/lib/database';
 import { getDebts } from '@/lib/database';
 
 export async function GET() {
   try {
     const txs = await getTransactions();
     const debts = await getDebts();
-    const settings = await getSettings();
+    const settings = await getSetting();
 
     let bankBalance = 0;
     let cashBalance = 0;
