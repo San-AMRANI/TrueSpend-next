@@ -4,6 +4,7 @@ import { initDb, getTransactions, getDebts, getSetting } from '@/lib/database';
 import { getDaysUntilPayday } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 function toNumber(value) {
   const parsed = Number.parseFloat(value);
