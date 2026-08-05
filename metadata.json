@@ -1,0 +1,6 @@
+{
+  "name": "TrueSpend",
+  "description": "Personal finance dashboard to track spending, manage debts, and analyze cashflow.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
