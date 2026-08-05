@@ -1,34 +1,49 @@
+'''
 'use client';
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './login.module.css';
 
 export default function LoginPage() {
+  const [username, setUsername] = useState('SanSpend');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const router = useRouter();
 
-  async function handleLogin(e) {
+  useEffect(() => {
+    // Check if already logged in
+    if (document.cookie.includes('auth_token=TrueSpend_Authorized')) {
+      router.push('/dashboard');
+    }
+  }, [router]);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    });
+    setError(null);
 
-    setLoading(false);
-    const data = await res.json();
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (data.success) {
-      document.cookie = `token=${data.token}; path=/; max-age=604800`; // 7 days
-      router.push('/dashboard');
-    } else {
-      setError(data.message || 'Invalid credentials. Please try again.');
+      const data = await response.json();
+
+      if (data.success) {
+        router.push('/dashboard');
+      } else {
+        setError(data.message || 'Invalid credentials');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className={styles.loginPage}>
@@ -41,6 +56,11 @@ export default function LoginPage() {
           {error && <div className="alert alert-error">{error}</div>}
 
           <div className="form-group">
+            <label className="form-label">Username</label>
+            <input className="form-input" type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" required />
+          </div>
+
+          <div className="form-group">
             <label className="form-label">Password</label>
             <input className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" required />
           </div>
@@ -49,9 +69,8 @@ export default function LoginPage() {
             {loading ? 'Verifying...' : '🔓 Login'}
           </button>
         </form>
-
-        <p className={styles.loginNote}>Session persists for 7 days</p>
       </div>
     </div>
   );
 }
+''
