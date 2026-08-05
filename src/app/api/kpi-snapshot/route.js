@@ -1,6 +1,5 @@
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { getTransactions, getDebts, getSetting } from '@/lib/database';
 import { getDaysUntilPayday } from '@/lib/dates';
 
@@ -86,13 +85,6 @@ function computeSnapshot(transactions, debts, settings) {
 }
 
 export async function GET() {
-  const cookieStore = cookies();
-  const token = cookieStore.get('token');
-
-  if (!token) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
     const [transactions, debts, initial_bank, initial_cash, payday] = await Promise.all([
       getTransactions(),
