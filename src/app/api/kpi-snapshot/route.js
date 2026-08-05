@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { getTransactions, getDebts, getSetting } from '@/lib/database';
+import { initDb, getTransactions, getDebts, getSetting } from '@/lib/database';
 import { getDaysUntilPayday } from '@/lib/dates';
 
 function toNumber(value) {
@@ -86,6 +86,7 @@ function computeSnapshot(transactions, debts, settings) {
 
 export async function GET() {
   try {
+    await initDb();
     const [transactions, debts, initial_bank, initial_cash, payday] = await Promise.all([
       getTransactions(),
       getDebts(),

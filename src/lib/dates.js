@@ -1,7 +1,13 @@
 export function getDaysUntilPayday(payday) {
+  // NOTE: This is a temporary, stable implementation to prevent server crashes.
+  // A more robust date calculation will be implemented next.
   const today = new Date();
-  const nextPayday = new Date(today.getFullYear(), today.getMonth(), payday);
-  if (nextPayday <= today) nextPayday.setMonth(nextPayday.getMonth() + 1);
-  const diff = Math.ceil((nextPayday - today) / (1000 * 60 * 60 * 24));
-  return Math.max(1, diff);
+  const currentDay = today.getDate();
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+  if (currentDay > payday) {
+    return (daysInMonth - currentDay) + payday;
+  } else {
+    return payday - currentDay;
+  }
 }
