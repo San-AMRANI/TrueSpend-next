@@ -6,9 +6,9 @@ import { getDebts } from '@/lib/database';
 
 export async function GET() {
   try {
-    const txs = await getTransactions();
-    const debts = await getDebts();
-    const settings = await getSetting();
+    const txs = await getTransactions() || [];
+    const debts = await getDebts() || [];
+    const settings = await getSetting() || [];
 
     let bankBalance = 0;
     let cashBalance = 0;
