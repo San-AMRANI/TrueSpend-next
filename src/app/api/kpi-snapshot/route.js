@@ -3,9 +3,6 @@ import { NextResponse } from 'next/server';
 import { initDb, getTransactions, getDebts, getSetting } from '@/lib/database';
 import { getDaysUntilPayday } from '@/lib/dates';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 function toNumber(value) {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -104,7 +101,13 @@ export async function GET() {
       payday: payday || '25',
     });
 
-    return NextResponse.json(snapshot);
+    return new Response(JSON.stringify(snapshot), {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+       },
+    });
+
   } catch (error) {
     return NextResponse.json({ message: 'Error fetching KPI data', error: error.message }, { status: 500 });
   }
